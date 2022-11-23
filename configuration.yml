@@ -1,0 +1,19 @@
+random_seed: 1234
+number_of_actions: 3
+qubits: 3
+environment:
+  name: MountainCar-v0
+  render_mode: human
+  render: yes
+memory_size: 1000000
+training:
+  batch_size: 64
+  optimizer: adam
+  loss: mse
+  observation_size: 2
+  max_steps: 200
+  episodes: 1000
+  epsilon:
+    min: 0.01
+    max: 0.2
+    change: 1

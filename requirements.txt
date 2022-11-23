@@ -1,0 +1,6 @@
+pennylane
+tensorflow
+gym
+yaml
+numpy
+gym[classic_control]
