@@ -12,7 +12,7 @@ class Agent:
     def __init__(self, action_space):
         self.memory = ReplayBuffer()
         self.action_space = action_space
-        self.epsilon = 0.0
+        self.epsilon = config['training']['epsilon']['start']
 
         self.model = self.build_model()
 
@@ -21,6 +21,9 @@ class Agent:
         return action
 
     def choose_action(self, observation):
+        if np.random.rand() < self.epsilon:
+            return self.get_random_action()
+
         observation = preprocess_observation(observation)
         prediction = self.model.predict(observation, verbose=0)
         action = np.argmax(prediction)
@@ -33,9 +36,26 @@ class Agent:
         if self.memory.memory_counter < config['training']['batch_size']:
             return
         batch_size = config['training']['batch_size']
-        state_batch, action_batch, reward_batch, next_state_batch, terminated_batch = self.memory.sample_batch(batch_size)
-        
+        state_batch, action_batch, reward_batch, next_state_batch, terminated_batch = self.memory.sample_batch(
+            batch_size)
 
+        action_space = np.arange(config['number_of_actions'])
+        action_values = np.array(action_space, dtype=np.int8)
+        action_indices = np.dot(action_batch, action_values)
+        action_indices = [int(x) for x in action_indices]
+
+        q_eval = self.model.predict(state_batch, verbose=0)
+        q_next = self.model.predict(next_state_batch, verbose=0)
+
+        batch_index = np.arange(batch_size, dtype=np.int32)
+
+        gradients = reward_batch + np.max(q_next, axis=1) * (1 - terminated_batch)
+        q_eval[batch_index, action_indices] = gradients / 30
+
+        self.model.fit(state_batch, q_eval, verbose=0)
+
+        # if self.exploration_rate > self.exploration_rate_min:
+        #     self.exploration_rate *= self.exploration_rate_decrement
 
     def build_model(self):
         q_circuit = get_circuit()
@@ -53,9 +73,9 @@ class Agent:
 
 
 def get_circuit():
-    dev = qml.device('default.qubit', wires=config['qubits'])
+    dev = qml.device('default.qubit.tf', wires=config['qubits'])
 
-    @qml.qnode(dev, interface='tf')
+    @qml.qnode(dev, interface='tf', diff_method='backprop')
     def circuit(inputs, weights):
         qml.RX(inputs[0], wires=0)
         qml.RX(inputs[1], wires=1)
@@ -93,9 +113,6 @@ def get_circuit():
 
 
 def preprocess_observation(observation):
-    # 0.6, 0.07 -> 3.1415926535897927, 3.141592653589793
-    # -1.2, -0.07 -> 0.0, 0.0
-
     position = observation[0]
     velocity = observation[1]
 
@@ -108,34 +125,6 @@ def preprocess_observation(observation):
     observation = np.array([position, velocity]).reshape(1, 2)
     return observation
 
-
-if __name__ == '__main__':
-    model = get_circuit()
-
-    weight_shapes = {'weights': 12}
-    qlayer = qml.qnn.KerasLayer(model, weight_shapes, output_dim=3)
-
-    clayer = tf.keras.layers.Dense(3)
-    model = tf.keras.models.Sequential([qlayer, clayer])
-
-    model.compile(loss=config['training']['loss'],
-                  optimizer=config['training']['optimizer'])
-    model.build((None, 2))
-    model.summary()
-
-    model.predict(np.array([0.0, 0.0]).reshape(1, 2))
-
-    # x = np.array([[0.0, 0.0], [0.0, 0.0]])
-    # y = np.array([[10.0, 10.0, 10.0], [10.0, 10.0, 10.0]])
-    #
-    # model.fit(x, y)
-    # print(model.predict(np.array([[0.0, 0.0]])))
-    # model.fit(x, y)
-    # print(model.predict(np.array([[0.0, 0.0]])))
-    # model.fit(x, y)
-    # print(model.predict(np.array([[0.0, 0.0]])))
-    # model.fit(x, y)
-    # print(model.predict(np.array([[0.0, 0.0]])))
 
 if __name__ == '__main__':
     agent = Agent(None)

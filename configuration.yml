@@ -7,13 +7,13 @@ environment:
   render: yes
 memory_size: 1000000
 training:
-  batch_size: 64
+  batch_size: 8
   optimizer: adam
   loss: mse
   observation_size: 2
   max_steps: 200
-  episodes: 1000
+  episodes: 20
   epsilon:
-    min: 0.01
-    max: 0.2
+    end: 0.01
+    start: 0.2
     change: 1

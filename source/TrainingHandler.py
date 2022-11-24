@@ -7,6 +7,18 @@ from source.utils import load_yml
 config = load_yml('../configuration.yml')
 
 
+def run_evaluation_episode(environment, agent):
+    observation = environment.reset()
+    total_reward = 0
+    for step in range(config['training']['max_steps']):
+        action = agent.choose_action(observation)
+        observation, reward, terminated, truncated = environment.step(action)
+        total_reward += reward
+        if terminated or truncated:
+            break
+    return total_reward
+
+
 class TrainingHandler:
     def __init__(self):
         self.created_at = datetime.now().strftime("%d-%m-%Y_%H-%M-%S")
@@ -15,23 +27,35 @@ class TrainingHandler:
 
     def run(self):
 
+        history = []
         for episode in range(config['training']['episodes']):
-            score = 0
-            observation, info = self.environment.reset()
+            observation = self.environment.reset()
 
-            for _ in range(config['training']['max_steps']):
+            self.run_training_episode(observation)
 
-                action = self.agent.choose_action(observation)
+            score = run_evaluation_episode(self.environment, self.agent)
 
-                next_observation, reward, terminated, truncated, info = self.environment.step(action)
-
-                self.agent.remember(observation, action, reward, next_observation, terminated or truncated)
-                self.agent.learn()
-                observation = next_observation
-                score += reward
-
-                if terminated or truncated:
-                    break
-
-            print(f"Episode: {episode}, Score: {score}, Info: {info}")
+            print(f"Episode: {episode}, Score: {score}")
+            history.append(score)
         self.environment.close()
+
+        # write history to file
+        with open(f"../results/{self.created_at}.txt", "w+") as f:
+            f.write(str(history))
+            f.close()
+
+    def run_training_episode(self, observation):
+        for timestep in range(config['training']['max_steps']):
+            print(timestep)
+
+            action = self.agent.choose_action(observation)
+
+            next_observation, reward, terminated, truncated = self.environment.step(action)
+
+            self.agent.remember(observation, action, reward, next_observation, terminated)
+            self.agent.learn()
+
+            observation = next_observation
+
+            if terminated or truncated:
+                break
