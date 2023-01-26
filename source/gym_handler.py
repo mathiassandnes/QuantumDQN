@@ -8,7 +8,7 @@ config = load_yml('../configuration.yml')
 class GymHandler:
     def __init__(self):
         if config['environment']['render']:
-            self.env = gym.make(config['environment']['name'])
+            self.env = gym.make(config['environment']['name'], render_mode=config['environment']['render_mode'])
         else:
             self.env = gym.make(config['environment']['name'])
 

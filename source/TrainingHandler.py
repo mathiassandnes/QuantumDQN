@@ -23,13 +23,18 @@ class TrainingHandler:
     def __init__(self):
         self.created_at = datetime.now().strftime("%d-%m-%Y_%H-%M-%S")
         self.environment = GymHandler()
-        self.agent = Agent(self.environment.env.action_space)
+
+        observation_space = self.environment.env.observation_space
+        action_space = self.environment.env.action_space
+
+        self.agent = Agent(observation_space, action_space)
 
     def run(self):
 
         history = []
         for episode in range(config['training']['episodes']):
             observation = self.environment.reset()
+            observation = observation[0]
 
             self.run_training_episode(observation)
 
@@ -46,16 +51,19 @@ class TrainingHandler:
 
     def run_training_episode(self, observation):
         for timestep in range(config['training']['max_steps']):
-            print(timestep)
-
+            if config['verbose']:
+                print(f'Timestep: {timestep}')
             action = self.agent.choose_action(observation)
 
-            next_observation, reward, terminated, truncated = self.environment.step(action)
+            next_observation, reward, terminated, truncated, info = self.environment.step(action)
 
             self.agent.remember(observation, action, reward, next_observation, terminated)
             self.agent.learn()
 
             observation = next_observation
+
+            if config['environment']['render']:
+                self.environment.render()
 
             if terminated or truncated:
                 break

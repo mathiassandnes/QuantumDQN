@@ -1,16 +1,21 @@
 random_seed: 1234
-number_of_actions: 3
-qubits: 3
+verbose: no
+mode: classical # classical or quantum
+classical:
+  layers: 2
+  neurons: 16
+quantum:
+  layers: 4
+  qubits: 5
 environment:
   name: MountainCar-v0
   render_mode: human
   render: yes
-memory_size: 1000000
+memory_size: 100000
 training:
   batch_size: 8
   optimizer: adam
   loss: mse
-  observation_size: 2
   max_steps: 200
   episodes: 20
   epsilon:

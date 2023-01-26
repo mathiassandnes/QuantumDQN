@@ -6,10 +6,10 @@ config = load_yml('../configuration.yml')
 
 
 class ReplayBuffer:
-    def __init__(self):
+    def __init__(self, n_inputs, n_outputs):
         self.memory_size = config['memory_size']
-        self.input_dimensions = config['training']['observation_size']
-        self.number_of_actions = config['number_of_actions']
+        self.input_dimensions = n_inputs
+        self.number_of_actions = n_outputs
         self.memory_counter = 0
 
         self.state_memory = np.zeros((self.memory_size, self.input_dimensions))
