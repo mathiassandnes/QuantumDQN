@@ -1,6 +1,11 @@
 pennylane
 tensorflow
-gym
 yaml
 numpy
+gym
 gym[classic_control]
+gym[box2d]
+matplotlib
+plotly
+pandas
+seaborn

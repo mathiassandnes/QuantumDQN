@@ -28,15 +28,14 @@ class Agent:
         action = self.action_space.sample()
         return action
 
-    def choose_action(self, observation):
-        if np.random.rand() < self.epsilon:
+    def choose_action(self, observation, training=True):
+        if np.random.rand() < self.epsilon and training:
             return self.get_random_action()
 
         if config['mode'] == 'quantum':
             observation = preprocess_observation(observation)
 
-        observation = observation.reshape(1, 2)
-        print(observation)
+        observation = observation.reshape(1, self.n_inputs)
 
         prediction = self.model.predict(observation, verbose=0)
         action = np.argmax(prediction)
@@ -62,8 +61,8 @@ class Agent:
 
         batch_index = np.arange(batch_size, dtype=np.int32)
 
-        gradients = reward_batch + np.max(q_next, axis=1) * (1 - terminated_batch)
-        q_eval[batch_index, action_indices] = gradients / 30
+        gradients = reward_batch + tf.reduce_max(q_next, axis=1) * (1 - terminated_batch)
+        q_eval[batch_index, action_indices] = gradients
 
         self.model.fit(state_batch, q_eval, verbose=0)
 

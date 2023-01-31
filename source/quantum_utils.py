@@ -41,7 +41,7 @@ def get_circuit(n_layers, n_qubits, n_inputs):
     return circuit
 
 
-def preprocess_observation(observation):
+def preprocess_mountaincar(observation):
     position = observation[0]
     velocity = observation[1]
 
@@ -53,3 +53,33 @@ def preprocess_observation(observation):
 
     observation = np.array([position, velocity])
     return observation
+
+
+def preprocess_cartpole(observation):
+    position = observation[0]
+    velocity = observation[1]
+    angle = observation[2]
+    angular_velocity = observation[3]
+
+    position = (position + 2.4) / 4.8 * np.pi
+    velocity = (velocity + 0.5) / 1 * np.pi
+    angle = (angle + 0.2094) / 0.4188 * np.pi
+    angular_velocity = (angular_velocity + 1) / 2 * np.pi
+
+    position = round(position, 2)
+    velocity = round(velocity, 2)
+    angle = round(angle, 2)
+    angular_velocity = round(angular_velocity, 2)
+
+    observation = np.array([position, velocity, angle, angular_velocity])
+    return observation
+
+
+def preprocess_observation(observation):
+    match config['environment']['name']:
+        case 'CartPole-v1':
+            return preprocess_cartpole(observation)
+        case 'MountainCar-v0':
+            return preprocess_mountaincar(observation)
+
+
