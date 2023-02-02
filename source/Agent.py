@@ -72,7 +72,10 @@ class Agent:
     def build_quantum_model(self):
         n_layers = config['quantum']['layers']
         n_qubits = config['quantum']['qubits']
-        n_weights = 2 * n_layers * n_qubits
+
+        rotations = config['quantum']['rotations']
+        number_of_rotation = [item for sublist in rotations for item in sublist]
+        n_weights = len(number_of_rotation) * n_qubits
 
         if n_qubits < self.n_inputs:
             raise 'The number of inputs is larger than number of Qubits'

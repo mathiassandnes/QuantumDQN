@@ -1,14 +1,18 @@
 random_seed: 1234
-verbose: no
+verbose: yes
 mode: quantum # classical or quantum
 classical:
   layers: 2
-  neurons: 64
+  neurons: 8
 quantum:
   layers: 4
-  qubits: 5
+  qubits: 8
+  entanglement: full #ladder, double ladder, brick, full
+  rotations: [[x, y, z], [y], [x], [z, x]] # [(x, y), (x, y), (x, y), (x, y)]
+  entanglements: [full, full, ladder, brick]
+  brick_size: 4
 environment:
-  name: CartPole-v1
+  name: MountainCar-v0 # CartPole-v1 or MountainCar-v0
   render_mode: human
   render: no
 memory_size: 100000
@@ -21,4 +25,5 @@ training:
   epsilon:
     end: 0.01
     start: 0.2
+
     change: 1
