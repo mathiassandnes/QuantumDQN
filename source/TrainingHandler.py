@@ -1,4 +1,5 @@
 import os
+import numpy as np
 from datetime import datetime
 
 from source.Agent import Agent
@@ -13,11 +14,14 @@ def run_evaluation_episode(environment, agent):
     observation = observation[0]
     total_reward = 0
     for step in range(config['training']['max_steps']):
+        if config['environment']['render']:
+            environment.render()
         action = agent.choose_action(observation, training=False)
         observation, reward, terminated, truncated, info = environment.step(action)
         total_reward += reward
         if terminated or truncated:
             break
+
     return total_reward
 
 
@@ -43,6 +47,9 @@ class TrainingHandler:
             f.close()
 
     def run(self):
+
+        if config['mode'] == 'quantum':
+            determine_quantum_parameters()
 
         for episode in range(config['training']['episodes']):
             observation = self.environment.reset()
@@ -84,3 +91,7 @@ def save_results_to_file(created_at, score):
         f.seek(0)
         f.write(','.join(history))
         f.close()
+
+
+def determine_quantum_parameters():
+    pass

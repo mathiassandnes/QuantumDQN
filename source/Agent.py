@@ -24,6 +24,9 @@ class Agent:
             case 'classical':
                 self.model = self.build_classical_model()
 
+    def save_model(self, path):
+        self.model.save(path)
+
     def get_random_action(self):
         action = self.action_space.sample()
         return action
@@ -72,25 +75,22 @@ class Agent:
     def build_quantum_model(self):
         n_layers = config['quantum']['layers']
         n_qubits = config['quantum']['qubits']
-
         rotations = config['quantum']['rotations']
-        number_of_rotation = [item for sublist in rotations for item in sublist]
-        n_weights = len(number_of_rotation) * n_qubits
+
+        number_of_rotation = len([item for sublist in rotations for item in sublist])
+        n_weights = number_of_rotation * n_qubits
 
         if n_qubits < self.n_inputs:
             raise 'The number of inputs is larger than number of Qubits'
 
-        if n_qubits < self.n_outputs:
-            raise 'The number of outputs is larger than number of Qubits'
-
         model = tf.keras.models.Sequential()
 
+        weight_shapes = {'weights': n_weights}
         q_circuit = get_circuit(n_layers, n_qubits, self.n_inputs)
 
-        weights = {'weights': n_weights}
-        model.add(qml.qnn.KerasLayer(q_circuit, weights, output_dim=n_qubits))
+        model.add(qml.qnn.KerasLayer(q_circuit, weight_shapes, output_dim=n_qubits))
 
-        model.add(tf.keras.layers.Dense(self.n_outputs))
+        model.add(tf.keras.layers.Dense(self.n_outputs, activation='linear'))
 
         model.compile(loss=config['training']['loss'],
                       optimizer=config['training']['optimizer'])
@@ -98,7 +98,7 @@ class Agent:
         if config['verbose']:
             model.summary()
             drawer = qml.draw(q_circuit)
-            print(drawer(inputs=[0.0, 0.0], weights=np.arange(n_weights)))
+            print(drawer(inputs=[0.0] * 4, weights=np.arange(n_weights)))
         return model
 
     def build_classical_model(self):

@@ -15,19 +15,21 @@ def get_circuit(n_layers, n_qubits, n_inputs):
         weight_index = 0
         for layer_index in range(n_layers):
 
-            # re-uploading
+            # Embedding
             for i in range(n_qubits):
+                qml.Hadamard(wires=i)
                 if i < n_inputs:
                     qml.RX(inputs[i], wires=i)
-                else:
-                    qml.Hadamard(wires=i)
+                # else:
+                #     qml.Hadamard(wires=i)
 
+            # Rotations
             weight_index = rotate(layer_index, weights, weight_index)
 
             # Entanglement
             entangle(layer_index)
 
-        return [qml.expval(qml.PauliX(i)) for i in range(n_qubits)]
+        return [qml.expval(qml.PauliZ(i)) for i in range(n_qubits)]
 
     def rotate(layer_index, weights, weight_index):
 
@@ -44,33 +46,35 @@ def get_circuit(n_layers, n_qubits, n_inputs):
                 case 'z':
                     for i in range(n_qubits):
                         qml.RZ(weights[weight_index], wires=i)
-                    weight_index += 1
+                        weight_index += 1
 
         return weight_index
 
     def entangle(layer_index):
         match config['quantum']['entanglements'][layer_index]:
             case 'ladder':
-                for l in range(n_qubits - 1):
-                    qml.CNOT(wires=[l, l + 1])
+                for i in range(n_qubits - 1):
+                    qml.CNOT(wires=[i, i + 1])
             case 'double ladder':
-                for l in range(n_qubits - 1):
-                    qml.CNOT(wires=[l, l + 1])
-                for l in range(n_qubits - 1, 0, -1):
-                    qml.CNOT(wires=[l, l - 1])
+                for i in range(n_qubits - 1):
+                    qml.CNOT(wires=[i, i + 1])
+                for i in range(n_qubits - 1, 0, -1):
+                    qml.CNOT(wires=[i, i - 1])
             case 'full':
-                for l in range(n_qubits - 1):
-                    for m in range(l + 1, n_qubits):
-                        qml.CNOT(wires=[l, m])
+                for i in range(n_qubits - 1):
+                    for j in range(i + 1, n_qubits):
+                        qml.CNOT(wires=[i, j])
+            case 'none':
+                pass
             case 'brick':
                 brick_layer_type = 0
-                for l in range(config['quantum']['brick_size']):
+                for _ in range(config['quantum']['brick_size']):
                     if brick_layer_type == 0:
-                        for l in range(0, n_qubits - 1, 2):
-                            qml.CNOT(wires=[l, l + 1])
+                        for i in range(0, n_qubits - 1, 2):
+                            qml.CNOT(wires=[i, i + 1])
                     if brick_layer_type == 1:
-                        for l in range(1, n_qubits - 1, 2):
-                            qml.CNOT(wires=[l, l + 1])
+                        for i in range(1, n_qubits - 1, 2):
+                            qml.CNOT(wires=[i, i + 1])
                     brick_layer_type = 1 - brick_layer_type
 
     return circuit
