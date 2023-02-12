@@ -66,6 +66,8 @@ class TrainingHandler:
         self.environment.close()
 
     def run_training_episode(self, observation):
+        # print model raw parameters
+        # print(self.agent.model.get_weights())
         for timestep in range(config['training']['max_steps']):
             action = self.agent.choose_action(observation, training=True)
 

@@ -9,7 +9,7 @@ config = load_yml('../configuration.yml')
 def get_circuit(n_layers, n_qubits, n_inputs):
     dev = qml.device('default.qubit.tf', wires=n_qubits)
 
-    @qml.qnode(dev, interface='tf', diff_method='backprop')
+    @qml.qnode(dev)#, interface='tf', diff_method='parameter-shift')
     def circuit(inputs, weights):
 
         weight_index = 0

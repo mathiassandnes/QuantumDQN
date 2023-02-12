@@ -41,6 +41,9 @@ class Agent:
         observation = observation.reshape(1, self.n_inputs)
 
         prediction = self.model.predict(observation, verbose=0)
+        # append prediction to a file
+
+
         action = np.argmax(prediction)
         return action
 
@@ -83,22 +86,21 @@ class Agent:
         if n_qubits < self.n_inputs:
             raise 'The number of inputs is larger than number of Qubits'
 
-        model = tf.keras.models.Sequential()
-
         weight_shapes = {'weights': n_weights}
         q_circuit = get_circuit(n_layers, n_qubits, self.n_inputs)
 
-        model.add(qml.qnn.KerasLayer(q_circuit, weight_shapes, output_dim=n_qubits))
+        q_layer = qml.qnn.KerasLayer(q_circuit, weight_shapes, output_dim=n_qubits)
+        output = tf.keras.layers.Dense(self.n_outputs, activation='linear')
 
-        model.add(tf.keras.layers.Dense(self.n_outputs, activation='linear'))
+        model = tf.keras.models.Sequential([q_layer, output])
 
-        model.compile(loss=config['training']['loss'],
-                      optimizer=config['training']['optimizer'])
-        model.build((None, self.n_inputs))
+        opt = tf.keras.optimizers.Adam()
+
+        model.compile(opt, loss='mae')
         if config['verbose']:
-            model.summary()
+            # model.summary()
             drawer = qml.draw(q_circuit)
-            print(drawer(inputs=[0.0] * 4, weights=np.arange(n_weights)))
+            print(drawer(inputs=np.arange(4), weights=np.arange(n_weights)))
         return model
 
     def build_classical_model(self):
@@ -125,4 +127,7 @@ class Agent:
 
 if __name__ == '__main__':
     agent = Agent([None, None], [None, None, None, None])
-    pred = agent.choose_action([0.0, 0.0])
+    for _ in range(100):
+        input = np.random.rand(4)
+        pred = agent.choose_action(input, training=False)
+        print(pred)

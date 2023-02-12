@@ -9,21 +9,21 @@ classical:
 quantum:
   layers: 1
   qubits: 4
-  rotations: [[x,y]]
-  entanglements: [none] #ladder, double ladder, brick, full
+  rotations: [ [ x,y, z] ,[ x,y ] ]
+  entanglements: [ ladder, ladder, none, noner ] #ladder, double ladder, brick, full
   brick_size: 4
   bounds:
-      layers: [1, 4]
-      qubits: [1, 5]
-      rotations: [x, y]
-      entanglements: [ladder, full, none] #ladder, double ladder, brick, full
-      brick_size: [3]
+    layers: [ 1, 4 ]
+    qubits: [ 1, 5 ]
+    rotations: [ x, y ]
+    entanglements: [ ladder, full, none ] #ladder, double ladder, brick, full
+    brick_size: [ 3 ]
 environment:
   name: CartPole-v1 # CartPole-v1 or MountainCar-v0
   render_mode: human
   render: no
 training:
-  batch_size: 64
+  batch_size: 16
   optimizer: adam
   loss: mse
   max_steps: 200
