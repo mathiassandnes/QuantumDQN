@@ -2,7 +2,7 @@ import pennylane as qml
 import numpy as np
 import tensorflow as tf
 
-from source.quantum_utils import get_circuit, preprocess_observation
+from source.quantum_utils import get_circuit, preprocess_observation, MyKerasLayer
 from source.utils import load_yml
 from source.ReplayBuffer import ReplayBuffer
 
@@ -10,19 +10,23 @@ config = load_yml('../configuration.yml')
 
 
 class Agent:
-    def __init__(self, observation_space, action_space):
+    def __init__(self, observation_space, action_space, config_, model=None):
+        global config
+        config = config_
         self.n_inputs = observation_space.shape[0]
         self.n_outputs = action_space.n
         self.memory = ReplayBuffer(self.n_inputs, self.n_outputs)
         self.action_space = action_space
         self.epsilon = config['training']['epsilon']['start']
+        self.exploration_rate_min = config['training']['epsilon']['end']
+        self.exploration_rate_decrement = config['training']['epsilon']['change']
 
         mode = config['mode']
         match mode:
             case 'quantum':
-                self.model = self.build_quantum_model()
+                self.model = self.build_quantum_model(model)
             case 'classical':
-                self.model = self.build_classical_model()
+                self.model = self.build_classical_model(model)
 
     def save_model(self, path):
         self.model.save(path)
@@ -41,8 +45,6 @@ class Agent:
         observation = observation.reshape(1, self.n_inputs)
 
         prediction = self.model.predict(observation, verbose=0)
-        # append prediction to a file
-
 
         action = np.argmax(prediction)
         return action
@@ -72,10 +74,14 @@ class Agent:
 
         self.model.fit(state_batch, q_eval, verbose=0)
 
-        # if self.exploration_rate > self.exploration_rate_min:
-        #     self.exploration_rate *= self.exploration_rate_decrement
+        if self.epsilon > self.exploration_rate_min:
+            self.epsilon *= self.exploration_rate_decrement
 
-    def build_quantum_model(self):
+    def build_quantum_model(self, model_path=None):
+        if model_path:
+            with tf.keras.utils.custom_object_scope({'KerasLayer': MyKerasLayer, 'get_circuit': get_circuit}):
+                return tf.keras.models.load_model(model_path)
+
         n_layers = config['quantum']['layers']
         n_qubits = config['quantum']['qubits']
         rotations = config['quantum']['rotations']
@@ -84,26 +90,34 @@ class Agent:
         n_weights = number_of_rotation * n_qubits
 
         if n_qubits < self.n_inputs:
-            raise 'The number of inputs is larger than number of Qubits'
+            print(f'Inputs: {self.n_inputs}, Qubits: {n_qubits}')
+            raise 'The number of inputs is larger than number of Qubits.'
 
         weight_shapes = {'weights': n_weights}
-        q_circuit = get_circuit(n_layers, n_qubits, self.n_inputs)
+        q_circuit = get_circuit(n_layers, n_qubits, self.n_inputs, config)
 
         q_layer = qml.qnn.KerasLayer(q_circuit, weight_shapes, output_dim=n_qubits)
         output = tf.keras.layers.Dense(self.n_outputs, activation='linear')
 
         model = tf.keras.models.Sequential([q_layer, output])
 
-        opt = tf.keras.optimizers.Adam()
+        opt = tf.keras.optimizers.Adam(learning_rate=config['quantum']['learning_rate'])
 
         model.compile(opt, loss='mae')
         if config['verbose']:
-            # model.summary()
+            print('Building Quantum Model:')
+            excluded_keys = ['bounds']
+            keys_except_excluded = {key: value for key, value in config['quantum'].items() if key not in excluded_keys}
+            print(keys_except_excluded)
+
             drawer = qml.draw(q_circuit)
-            print(drawer(inputs=np.arange(4), weights=np.arange(n_weights)))
+            print(drawer(inputs=np.arange(self.n_inputs), weights=np.arange(n_weights)))
         return model
 
-    def build_classical_model(self):
+    def build_classical_model(self, model=None):
+        if model:
+            return tf.keras.models.load_model(model)
+
         n_layers = config['classical']['layers']
         n_neurons = config['classical']['neurons']
 
