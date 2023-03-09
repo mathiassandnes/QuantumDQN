@@ -2,17 +2,17 @@ import pennylane as qml
 import numpy as np
 import tensorflow as tf
 
-from source.quantum_utils import get_circuit, preprocess_observation, MyKerasLayer
+from source.quantum_utils import get_circuit, preprocess_observation
 from source.utils import load_yml
 from source.ReplayBuffer import ReplayBuffer
 
-config = load_yml('../configuration.yml')
+config = load_yml(f'../configuration.yml')
+path = '' if config['cluster'] else '../'
 
 
 class Agent:
-    def __init__(self, observation_space, action_space, config_, model=None):
-        global config
-        config = config_
+    def __init__(self, observation_space, action_space, hyperparameters=None, model=None):
+        self.hyperparameters = hyperparameters
         self.n_inputs = observation_space.shape[0]
         self.n_outputs = action_space.n
         self.memory = ReplayBuffer(self.n_inputs, self.n_outputs)
@@ -36,6 +36,7 @@ class Agent:
         return action
 
     def choose_action(self, observation, training=True):
+
         if np.random.rand() < self.epsilon and training:
             return self.get_random_action()
 
@@ -78,38 +79,33 @@ class Agent:
             self.epsilon *= self.exploration_rate_decrement
 
     def build_quantum_model(self, model_path=None):
-        if model_path:
-            with tf.keras.utils.custom_object_scope({'KerasLayer': MyKerasLayer, 'get_circuit': get_circuit}):
-                return tf.keras.models.load_model(model_path)
 
-        n_layers = config['quantum']['layers']
-        n_qubits = config['quantum']['qubits']
-        rotations = config['quantum']['rotations']
+        n_layers = self.hyperparameters['quantum']['layers']
+        n_qubits = self.hyperparameters['quantum']['qubits']
+        rotations = self.hyperparameters['quantum']['rotations']
 
-        number_of_rotation = len([item for sublist in rotations for item in sublist])
-        n_weights = number_of_rotation * n_qubits
+        rotations_per_qubit = len([item for sublist in rotations for item in sublist])
+        n_weights = rotations_per_qubit * n_qubits
 
         if n_qubits < self.n_inputs:
             print(f'Inputs: {self.n_inputs}, Qubits: {n_qubits}')
             raise 'The number of inputs is larger than number of Qubits.'
 
         weight_shapes = {'weights': n_weights}
-        q_circuit = get_circuit(n_layers, n_qubits, self.n_inputs, config)
+        q_circuit = get_circuit(n_layers, n_qubits, self.n_inputs, self.hyperparameters)
 
         q_layer = qml.qnn.KerasLayer(q_circuit, weight_shapes, output_dim=n_qubits)
         output = tf.keras.layers.Dense(self.n_outputs, activation='linear')
 
         model = tf.keras.models.Sequential([q_layer, output])
 
-        opt = tf.keras.optimizers.Adam(learning_rate=config['quantum']['learning_rate'])
+        opt = tf.keras.optimizers.Adam(learning_rate=self.hyperparameters['quantum']['learning_rate'])
 
         model.compile(opt, loss='mae')
         if config['verbose']:
-            print('Building Quantum Model:')
             excluded_keys = ['bounds']
-            keys_except_excluded = {key: value for key, value in config['quantum'].items() if key not in excluded_keys}
+            keys_except_excluded = {key: value for key, value in self.hyperparameters['quantum'].items() if key not in excluded_keys}
             print(keys_except_excluded)
-
             drawer = qml.draw(q_circuit)
             print(drawer(inputs=np.arange(self.n_inputs), weights=np.arange(n_weights)))
         return model

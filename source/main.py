@@ -1,37 +1,33 @@
-from TrainingHandler import TrainingHandler
+from datetime import datetime
+
+from TrainingHandler import TrainingHandler, select_hyperparameters
 import os
-import threading
+import multiprocessing
 
 os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
-
-import cProfile
-import pstats
 
 
 def run_thread(thread, trials):
     for trial in range(trials):
         print(f'Running thread: {thread + 1}, trial {trial + 1}')
 
-        with cProfile.Profile() as pr:
-            h = TrainingHandler(thread, trial)
-            h.run()
+        hyperparameters = select_hyperparameters()
 
-        stats = pstats.Stats(pr)
-        stats.sort_stats(pstats.SortKey.TIME)
-        stats.print_stats()
+        created_at = datetime.now().strftime(f'%Y-%m-%d_%H-%M-%S_thread_{thread}_trial_{trial}')
+        for run_num in range(3):
+            h = TrainingHandler(run_num, created_at, hyperparameters)
+            h.run()
 
 
 if __name__ == '__main__':
-    n_threads = 1
-    n_trials = 1
-    threads = []
+    n_procs = 2
+    n_trials = 2
+    processes = []
 
-    # run every configuration thrice
+    for i in range(n_procs):
+        p = multiprocessing.Process(target=run_thread, args=(i, n_trials))
+        processes.append(p)
+        p.start()
 
-    for thread in range(n_threads):
-        t = threading.Thread(target=run_thread, args=(thread, n_trials))
-        threads.append(t)
-        t.start()
-
-    for t in threads:
-        t.join()
+    for p in processes:
+        p.join()

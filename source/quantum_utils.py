@@ -4,18 +4,10 @@ import pennylane as qml
 from source.utils import load_yml
 
 config = load_yml('../configuration.yml')
+path = '' if config['cluster'] else '../'
 
 
-class MyKerasLayer(qml.qnn.KerasLayer):
-    def get_config(self):
-        config_ = super().get_config()
-        config_['qnode'] = self.qnode
-        return config_
-
-
-def get_circuit(n_layers, n_qubits, n_inputs, _config):
-    global config
-    config = _config
+def get_circuit(n_layers, n_qubits, n_inputs, hyperparameters):
     dev = qml.device('default.qubit.tf', wires=n_qubits)
 
     @qml.qnode(dev, interface='tf', diff_method='best')
@@ -41,7 +33,7 @@ def get_circuit(n_layers, n_qubits, n_inputs, _config):
         return [qml.expval(qml.PauliZ(i)) for i in range(n_qubits)]
 
     def rotate(layer_index, weights, weight_index):
-        for rotation in config['quantum']['rotations'][layer_index]:
+        for rotation in hyperparameters['quantum']['rotations'][layer_index]:
             match rotation:
                 case 'x':
                     for i in range(n_qubits):
@@ -59,7 +51,7 @@ def get_circuit(n_layers, n_qubits, n_inputs, _config):
         return weight_index
 
     def entangle(layer_index):
-        match config['quantum']['entanglements'][layer_index]:
+        match hyperparameters['quantum']['entanglements'][layer_index]:
             case 'ladder':
                 for i in range(n_qubits - 1):
                     qml.CNOT(wires=[i, i + 1])
@@ -76,7 +68,7 @@ def get_circuit(n_layers, n_qubits, n_inputs, _config):
                 pass
             case 'brick':
                 brick_layer_type = 0
-                for _ in range(config['quantum']['brick_size']):
+                for _ in range(hyperparameters['quantum']['brick_size']):
                     if brick_layer_type == 0:
                         for i in range(0, n_qubits - 1, 2):
                             qml.CNOT(wires=[i, i + 1])

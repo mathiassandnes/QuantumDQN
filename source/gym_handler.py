@@ -4,6 +4,7 @@ from source.utils import load_yml
 
 config = load_yml('../configuration.yml')
 
+path = '' if config['cluster'] else '../'
 
 class GymHandler:
     def __init__(self):

@@ -1,26 +1,38 @@
-import numpy as np
-import matplotlib.pyplot as plt
+import os
 import yaml
+import matplotlib.pyplot as plt
 
-path = '../results/10-02-2023_16-01-20'
+# Set the path to the results folder
+path = '../results'
 
-# Load the data
-with open(path + '/results.txt', 'r') as f:
-    data = f.read()
-    data = data[1:]
-    data = data.split(',')
-    data = [float(d) for d in data]
+# Iterate over all subfolders in the results folder
+for folder in os.listdir(path):
+    folder_path = os.path.join(path, folder)
 
-# load yaml as dict
-with open(path + '/config.yml', 'r') as f:
-    config = yaml.safe_load(f)
-    print(config['quantum'])
+    # Check if the folder contains results
+    if os.path.isfile(os.path.join(folder_path, 'results.txt')):
+        # Load the data
+        with open(os.path.join(folder_path, 'results.txt'), 'r') as f:
+            data = f.read()
+            data = data[1:]
+            data = data.split(',')
+            # remove empty string
+            data = [d for d in data if d != '']
+            data = [float(d) for d in data]
 
-    print(config)
+        # Load the config file
+        with open(os.path.join(folder_path, 'config.yml'), 'r') as f:
+            config = yaml.safe_load(f)
 
+        config_without_bounds = config.copy()
+        config_without_bounds['quantum']['bounds'] = None
 
+        print(folder_path + ' ' + str(config_without_bounds['quantum']))
 
-# plot the data
+        # Plot the data
+        plt.plot(data, label=folder)
 
-plt.plot(data)
+# need function for this that consideres environment
+plt.ylim(0, 100)
+plt.legend()
 plt.show()

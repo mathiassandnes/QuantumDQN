@@ -2,8 +2,9 @@ import numpy as np
 
 from utils import reverse_one_hot, load_yml
 
-config = load_yml('../configuration.yml')
+config = load_yml(f'../configuration.yml')
 
+path = '' if config['cluster'] else '../'
 
 class ReplayBuffer:
     def __init__(self, n_inputs, n_outputs):
