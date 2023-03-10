@@ -18,18 +18,26 @@ def run_evaluation_episode(environment, agent, render=False):
     observation = observation[0]
     total_reward = 0
     actions = []
+    observations = []
+    predictions = []
+
     for step in range(config['training']['max_steps']):
         if config['environment']['render'] or render:
             environment.render()
-        action = agent.choose_action(observation, training=False)
+
+        action, prediction = agent.choose_action(observation, training=False, include_raw=True)
+
         actions.append(action)
+        observations.append(observation)
+        predictions.append(prediction)
+
         observation, reward, terminated, truncated, info = environment.step(action)
         total_reward += reward
         if terminated or truncated:
             break
     if config['verbose']:
         print(actions)
-    return total_reward, actions
+    return total_reward, actions, observations, predictions
 
 
 class TrainingHandler:
@@ -55,14 +63,16 @@ class TrainingHandler:
             with open(f'{path}results/{self.created_at}/config.yml', 'w+') as f:
                 yaml.dump(config, f, default_flow_style=False)
 
+        if not os.path.exists(f'{path}results/{self.created_at}/hyperparameters.yml'):
+            with open(f'{path}results/{self.created_at}/hyperparameters.yml', 'w+') as f:
+                yaml.dump(self.hyperparameters, f, default_flow_style=False)
+
         os.mkdir(f'{save_path}/run_{self.run_num}')
         os.mkdir(f'{save_path}/run_{self.run_num}/models')
 
-        with open(f'{save_path}/run_{self.run_num}/hyperparameters.yml', 'w+') as f:
-            yaml.dump(self.hyperparameters, f, default_flow_style=False)
-
         with open(f'{save_path}/run_{self.run_num}/results.csv', 'w+') as f:
-            f.write('id;episode;training_score;evaluation_score;epsilon;training_actions;evaluation_actions\n')
+            f.write(
+                'episode;training_score;evaluation_score;epsilon;training_actions;evaluation_actions;evaluation_observations;evaluation_predictions\n')
 
     def run(self):
 
@@ -73,7 +83,8 @@ class TrainingHandler:
             observation = observation[0]
             training_score, training_actions = self.run_training_episode(observation)
 
-            evaluation_score, evaluation_actions = run_evaluation_episode(self.environment, self.agent)
+            evaluation_score, evaluation_actions, evaluation_observations, evaluation_predictions = run_evaluation_episode(
+                self.environment, self.agent)
 
             if evaluation_score > best_score:
                 if config['verbose']:
@@ -87,7 +98,8 @@ class TrainingHandler:
                 print(self.agent.epsilon)
 
             save_results_to_file(self.created_at, self.run_num, episode, training_score, evaluation_score,
-                                 self.agent.epsilon, training_actions, evaluation_actions)
+                                 self.agent.epsilon, training_actions, evaluation_actions, evaluation_observations,
+                                 evaluation_predictions)
 
         self.environment.close()
 
@@ -115,16 +127,15 @@ class TrainingHandler:
         return timestep, actions
 
 
-def save_results_to_file(created_at, run, episode, training_score, eval_score, epsilon, eval_action, training_actions):
-    # with open(f'{path}results/{created_at}/run_{run}/episodes/{episode}.csv', 'w+') as f:
-    #     f.write('observations;predictions\n')
-    #     for o, p in zip(training_actions, eval_action):
-    #         f.write(f'{o};{p}\n')
-
+def save_results_to_file(created_at, run, episode, training_score, eval_score, epsilon, training_actions, eval_action,
+                         eval_observations, eval_predictions):
     with open(f'{path}results/{created_at}/run_{run}/results.csv', 'r+') as f:
         epsilon = round(epsilon, 2)
+        eval_observations = [list(x) for x in eval_observations]
+        eval_predictions = [list(x[0]) for x in eval_predictions]
         f.seek(0, os.SEEK_END)
-        f.write(f'{episode};{training_score};{eval_score};{epsilon};{training_actions};{eval_action}\n')
+        f.write(
+            f'{episode};{training_score};{eval_score};{epsilon};{training_actions};{eval_action};{eval_observations};{eval_predictions}\n')
 
 
 def select_hyperparameters():

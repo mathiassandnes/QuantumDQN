@@ -35,7 +35,7 @@ class Agent:
         action = self.action_space.sample()
         return action
 
-    def choose_action(self, observation, training=True):
+    def choose_action(self, observation, training=True, include_raw=False):
 
         if np.random.rand() < self.epsilon and training:
             return self.get_random_action()
@@ -48,6 +48,10 @@ class Agent:
         prediction = self.model.predict(observation, verbose=0)
 
         action = np.argmax(prediction)
+
+        if include_raw:
+            return action, prediction
+
         return action
 
     def remember(self, observation, action, reward, next_observation, terminated):

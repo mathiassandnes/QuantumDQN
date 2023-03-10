@@ -31,8 +31,8 @@ training:
   optimizer: adam
   learning_rate: 0.1
   loss: mse
-  max_steps: 10
-  episodes: 10
+  max_steps: 100
+  episodes: 100
   epsilon:
     end: 0.01
     start: 1
