@@ -1,38 +1,40 @@
 random_seed: 1234
 verbose: no
 cluster: no
-mode: classical # classical or quantum
+mode: quantum # classical or quantum
 memory_size: 2000
 trials_per_configuration: 3
 classical:
   layers: 2
   neurons: 64
+  bounds:
+    layers: [ 1,2,3,4 ]
+    neurons: [ 32, 64, 128, 256 ]
+    learning_rate: [ 0.1, 0.03, 0.01, 0.003, 0.001 ]
 quantum:
-  layers: 1
-  qubits: 4
+  layers:
+  qubits: 6
   rotations: [ [ x, y, z ] ]
   entanglements: [ none ] #ladder, double ladder, brick, full
   brick_size: 4
   learning_rate: 0.01
   bounds:
-    layers: [ 1,2,3,4,5,6,7,8,9,10 ]
-    qubits: [ 4 ]
+    layers: [ 1,2,3,4 ]
+    qubits: [ 6 ]
     rotations: [ [ x, y ] ]
-    entanglements: [ ladder, double ladder, brick, full, none ]
-    learning_rate: [ 0.3, 0.1, 0.03, 0.01, 0.003, 0.001 ] #0.3, 0.1, 0.03, 0.01, 0.003, 0.001 ]
-    brick_size: [ 3 ]
+    entanglements: [ ladder, double ladder, full, none ] # brick
+    learning_rate: [ 0.1, 0.03, 0.01, 0.003, 0.001 ]
 environment:
-  name: CartPole-v1 # CartPole-v1, Acrobot-v1 or MountainCar-v0
+  name: Acrobot-v1 # CartPole-v1, Acrobot-v1 or MountainCar-v0
   render_mode: human
   render: no
 training:
-  random_search: yes
+  early_stop: 20
   batch_size: 8
   optimizer: adam
-  learning_rate: 0.1
   loss: mse
   max_steps: 100
-  episodes: 100
+  episodes: 1000
   epsilon:
     end: 0.01
     start: 1

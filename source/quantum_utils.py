@@ -33,7 +33,7 @@ def get_circuit(n_layers, n_qubits, n_inputs, hyperparameters):
         return [qml.expval(qml.PauliZ(i)) for i in range(n_qubits)]
 
     def rotate(layer_index, weights, weight_index):
-        for rotation in hyperparameters['quantum']['rotations'][layer_index]:
+        for rotation in hyperparameters['rotations'][layer_index]:
             match rotation:
                 case 'x':
                     for i in range(n_qubits):
@@ -51,7 +51,7 @@ def get_circuit(n_layers, n_qubits, n_inputs, hyperparameters):
         return weight_index
 
     def entangle(layer_index):
-        match hyperparameters['quantum']['entanglements'][layer_index]:
+        match hyperparameters['entanglements'][layer_index]:
             case 'ladder':
                 for i in range(n_qubits - 1):
                     qml.CNOT(wires=[i, i + 1])
@@ -68,7 +68,7 @@ def get_circuit(n_layers, n_qubits, n_inputs, hyperparameters):
                 pass
             case 'brick':
                 brick_layer_type = 0
-                for _ in range(hyperparameters['quantum']['brick_size']):
+                for _ in range(hyperparameters['brick_size']):
                     if brick_layer_type == 0:
                         for i in range(0, n_qubits - 1, 2):
                             qml.CNOT(wires=[i, i + 1])
@@ -84,8 +84,8 @@ def preprocess_mountaincar(observation):
     position = observation[0]
     velocity = observation[1]
 
-    position = (position + 1.2) / 1.8 * np.pi
-    velocity = (velocity + 0.07) / 0.14 * np.pi
+    position = (position + 1.2) / 1.8 * np.pi - np.pi / 2
+    velocity = (velocity + 0.07) / 0.14 * np.pi - np.pi / 2
 
     position = round(position, 2)
     velocity = round(velocity, 2)
@@ -99,24 +99,24 @@ def preprocess_acrobot(observation):
     sintheta1 = observation[1]
     costheta2 = observation[2]
     sintheta2 = observation[3]
-    theta1dot = observation[4]
-    theta2dot = observation[5]
+    angular_velocity_theta1 = observation[4]
+    angular_velocity_theta2 = observation[5]
 
-    costheta1 = (costheta1 + 1) / 2 * np.pi
-    sintheta1 = (sintheta1 + 1) / 2 * np.pi
-    costheta2 = (costheta2 + 1) / 2 * np.pi
-    sintheta2 = (sintheta2 + 1) / 2 * np.pi
-    theta1dot = (theta1dot + 4) / 8 * np.pi
-    theta2dot = (theta2dot + 9) / 18 * np.pi
+    costheta1 = (costheta1 + 1) / 2 * np.pi - np.pi / 2
+    sintheta1 = (sintheta1 + 1) / 2 * np.pi - np.pi / 2
+    costheta2 = (costheta2 + 1) / 2 * np.pi - np.pi / 2
+    sintheta2 = (sintheta2 + 1) / 2 * np.pi - np.pi / 2
+    angular_velocity_theta1 = (angular_velocity_theta1 + 4) / 8 * np.pi - np.pi / 2
+    angular_velocity_theta2 = (angular_velocity_theta2 + 9) / 18 * np.pi - np.pi / 2
 
     costheta1 = round(costheta1, 2)
     sintheta1 = round(sintheta1, 2)
     costheta2 = round(costheta2, 2)
     sintheta2 = round(sintheta2, 2)
-    theta1dot = round(theta1dot, 2)
-    theta2dot = round(theta2dot, 2)
+    angular_velocity_theta1 = round(angular_velocity_theta1, 2)
+    angular_velocity_theta2 = round(angular_velocity_theta2, 2)
 
-    observation = np.array([costheta1, sintheta1, costheta2, sintheta2, theta1dot, theta2dot])
+    observation = np.array([costheta1, sintheta1, costheta2, sintheta2, angular_velocity_theta1, angular_velocity_theta2])
     return observation
 
 
@@ -126,10 +126,10 @@ def preprocess_cartpole(observation):
     angle = observation[2]
     angular_velocity = observation[3]
 
-    position = (position + 2.4) / 4.8 * np.pi
-    velocity = (velocity + 0.5) / 1 * np.pi
-    angle = (angle + 0.2094) / 0.4188 * np.pi
-    angular_velocity = (angular_velocity + 1) / 2 * np.pi
+    position = (position + 2.4) / 4.8 * np.pi - np.pi / 2
+    velocity = (velocity + 0.5) / 1 * np.pi - np.pi / 2
+    angle = (angle + 0.2094) / 0.4188 * np.pi - np.pi / 2
+    angular_velocity = (angular_velocity + 1) / 2 * np.pi - np.pi / 2
 
     position = round(position, 2)
     velocity = round(velocity, 2)
@@ -150,10 +150,10 @@ def preprocess_lunar_lander(observation):
     leg1_contact = observation[6]
     leg2_contact = observation[7]
 
-    position_x = (position_x + 1) / 2 * np.pi
-    position_y = (position_y + 1) / 2 * np.pi
-    velocity_x = (velocity_x + 1) / 2 * np.pi
-    velocity_y = (velocity_y + 1) / 2 * np.pi
+    position_x = (position_x + 1) / 2 * np.pi - np.pi / 2
+    position_y = (position_y + 1) / 2 * np.pi - np.pi / 2
+    velocity_x = (velocity_x + 1) / 2 * np.pi - np.pi / 2
+    velocity_y = (velocity_y + 1) / 2 * np.pi - np.pi / 2
     angle = (angle + 1) / 2 * np.pi
     angular_velocity = (angular_velocity + 1) / 2 * np.pi
     leg1_contact = (leg1_contact + 1) / 2 * np.pi

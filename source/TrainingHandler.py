@@ -1,13 +1,11 @@
 import os
 import numpy as np
-import random
-from datetime import datetime
 
 import yaml
 
 from source.Agent import Agent
 from source.gym_handler import GymHandler
-from source.utils import load_yml
+from source.utils import load_yml, generate_bounds, save_results_to_file
 
 config = load_yml(f'../configuration.yml')
 path = '' if config['cluster'] else '../'
@@ -42,7 +40,7 @@ def run_evaluation_episode(environment, agent, render=False):
 
 class TrainingHandler:
     def __init__(self, run, created_at, hyperparameters):
-        self.hyperparameters = hyperparameters
+        self.hyperparameters = generate_bounds(hyperparameters)
         self.run_num = run
 
         self.created_at = created_at
@@ -77,8 +75,10 @@ class TrainingHandler:
     def run(self):
 
         best_score = -np.inf
+        early_stop_counter = 0
 
         for episode in range(config['training']['episodes']):
+
             observation = self.environment.reset()
             observation = observation[0]
             training_score, training_actions = self.run_training_episode(observation)
@@ -92,6 +92,9 @@ class TrainingHandler:
                 best_score = evaluation_score
                 self.agent.save_model(
                     f'{path}results/{self.created_at}/run_{self.run_num}/models/{evaluation_score}.h5')
+                early_stop_counter = 0
+            else:
+                early_stop_counter += 1
 
             if config['verbose']:
                 print(f'Episode: {episode}, Evaluation Score: {evaluation_score}, Training Score: {training_score}')
@@ -100,6 +103,9 @@ class TrainingHandler:
             save_results_to_file(self.created_at, self.run_num, episode, training_score, evaluation_score,
                                  self.agent.epsilon, training_actions, evaluation_actions, evaluation_observations,
                                  evaluation_predictions)
+
+            if early_stop_counter >= config['training']['early_stop']:
+                break
 
         self.environment.close()
 
@@ -125,30 +131,3 @@ class TrainingHandler:
                 break
 
         return timestep, actions
-
-
-def save_results_to_file(created_at, run, episode, training_score, eval_score, epsilon, training_actions, eval_action,
-                         eval_observations, eval_predictions):
-    with open(f'{path}results/{created_at}/run_{run}/results.csv', 'r+') as f:
-        epsilon = round(epsilon, 2)
-        eval_observations = [list(x) for x in eval_observations]
-        eval_predictions = [list(x[0]) for x in eval_predictions]
-        f.seek(0, os.SEEK_END)
-        f.write(
-            f'{episode};{training_score};{eval_score};{epsilon};{training_actions};{eval_action};{eval_observations};{eval_predictions}\n')
-
-
-def select_hyperparameters():
-    if config['mode'] == 'quantum':
-        bounds = config['quantum']['bounds']
-
-        for key in config['quantum'].keys():
-            if key == 'bounds':
-                continue
-
-            if key == 'rotations' or key == 'entanglements':
-                config['quantum'][key] = [random.choice(bounds[key]) for _ in range(config['quantum']['layers'])]
-                continue
-
-            config['quantum'][key] = random.choice(bounds[key])
-    return config

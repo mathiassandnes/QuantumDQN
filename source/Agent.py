@@ -84,9 +84,9 @@ class Agent:
 
     def build_quantum_model(self, model_path=None):
 
-        n_layers = self.hyperparameters['quantum']['layers']
-        n_qubits = self.hyperparameters['quantum']['qubits']
-        rotations = self.hyperparameters['quantum']['rotations']
+        n_layers = self.hyperparameters['layers']
+        n_qubits = self.hyperparameters['qubits']
+        rotations = self.hyperparameters['rotations']
 
         rotations_per_qubit = len([item for sublist in rotations for item in sublist])
         n_weights = rotations_per_qubit * n_qubits
@@ -103,12 +103,13 @@ class Agent:
 
         model = tf.keras.models.Sequential([q_layer, output])
 
-        opt = tf.keras.optimizers.Adam(learning_rate=self.hyperparameters['quantum']['learning_rate'])
+        opt = tf.keras.optimizers.Adam(learning_rate=self.hyperparameters['learning_rate'])
 
         model.compile(opt, loss='mae')
         if config['verbose']:
             excluded_keys = ['bounds']
-            keys_except_excluded = {key: value for key, value in self.hyperparameters['quantum'].items() if key not in excluded_keys}
+            keys_except_excluded = {key: value for key, value in self.hyperparameters.items() if
+                                    key not in excluded_keys}
             print(keys_except_excluded)
             drawer = qml.draw(q_circuit)
             print(drawer(inputs=np.arange(self.n_inputs), weights=np.arange(n_weights)))
@@ -118,8 +119,8 @@ class Agent:
         if model:
             return tf.keras.models.load_model(model)
 
-        n_layers = config['classical']['layers']
-        n_neurons = config['classical']['neurons']
+        n_layers = self.hyperparameters['layers']
+        n_neurons = self.hyperparameters['neurons']
 
         model = tf.keras.models.Sequential()
 
@@ -131,7 +132,7 @@ class Agent:
         model.add(tf.keras.layers.Dense(self.n_outputs, activation='linear'))
 
         model.compile(loss=config['training']['loss'],
-                      optimizer=config['training']['optimizer'])
+                      optimizer=config['training']['optimizer'], learning_rate=self.hyperparameters['learning_rate'])
         model.build((None, self.n_outputs))
         if config['verbose']:
             model.summary()

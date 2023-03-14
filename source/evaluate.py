@@ -17,8 +17,8 @@ def find_best_model():
 
 
 if __name__ == '__main__':
-    directory = '../results/27-02-2023_13-43-35'
-    config = load_yml(f'{directory}/config.yml')
+    directory = '../results/2023-03-13_11-56-31_thread_1_trial_0/run_0'
+    config = load_yml(f'{directory}/../config.yml')
 
     environment = gym.make(config['environment']['name'], render_mode='human')
 
