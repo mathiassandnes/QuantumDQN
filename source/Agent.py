@@ -132,7 +132,7 @@ class Agent:
         model.add(tf.keras.layers.Dense(self.n_outputs, activation='linear'))
 
         model.compile(loss=config['training']['loss'],
-                      optimizer=config['training']['optimizer'], learning_rate=self.hyperparameters['learning_rate'])
+                      optimizer=tf.keras.optimizers.Adam(learning_rate=self.hyperparameters['learning_rate']))
         model.build((None, self.n_outputs))
         if config['verbose']:
             model.summary()

@@ -9,8 +9,8 @@ classical:
   neurons: 64
   bounds:
     layers: [ 1,2,3,4 ]
-    neurons: [ 32, 64, 128, 256 ]
-    learning_rate: [ 0.1, 0.03, 0.01, 0.003, 0.001 ]
+    neurons: [ 4, 8, 16, 32 ]
+    learning_rate: [ 0.03, 0.01, 0.003, 0.001, 0.0003 ]
 quantum:
   layers:
   qubits: 6
@@ -23,7 +23,7 @@ quantum:
     qubits: [ 6 ]
     rotations: [ [ x, y ] ]
     entanglements: [ ladder, double ladder, full, none ] # brick
-    learning_rate: [ 0.1, 0.03, 0.01, 0.003, 0.001 ]
+    learning_rate: [ 0.3, 0.1, 0.03, 0.01, 0.003]
 environment:
   name: Acrobot-v1 # CartPole-v1, Acrobot-v1 or MountainCar-v0
   render_mode: human
