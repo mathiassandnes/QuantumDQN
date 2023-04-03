@@ -4,12 +4,14 @@ import random
 import yaml
 import numpy as np
 
-from source.TrainingHandler import path, config
-
 
 def load_yml(path):
     with open(path, 'r') as f:
         return yaml.safe_load(f)
+
+
+config = load_yml(f'../configuration.yml')
+path = '' if config['cluster'] else '../'
 
 
 def reverse_one_hot(value, length):

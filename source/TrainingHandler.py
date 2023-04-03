@@ -11,31 +11,67 @@ config = load_yml(f'../configuration.yml')
 path = '' if config['cluster'] else '../'
 
 
-def run_evaluation_episode(environment, agent, render=False):
-    observation = environment.reset()
-    observation = observation[0]
-    total_reward = 0
-    actions = []
-    observations = []
-    predictions = []
+def run_evaluation_episodes(environment, agent, n=5, render=False):
+    total_rewards = []
+    all_actions = []
+    all_observations = []
+    all_predictions = []
 
-    for step in range(config['training']['max_steps']):
-        if config['environment']['render'] or render:
+    for episode in range(n):
+        observation = environment.reset()
+        observation = observation[0]
+        total_reward = 0
+        actions = []
+        observations = []
+        predictions = []
+
+        for step in range(config['training']['max_eval_steps']):
+            if config['environment']['render'] or render:
+                environment.render()
+
+            action, prediction = agent.choose_action(observation, training=False, include_raw=True)
+
+            actions.append(action)
+            observations.append(observation)
+            predictions.append(prediction)
+
+            observation, reward, terminated, truncated, info = environment.step(action)
+            total_reward += reward
+            if terminated or truncated:
+                break
+
+        if config['verbose']:
+            print(actions)
+
+        total_rewards.append(total_reward)
+        all_actions.append(actions)
+        all_observations.append(observations)
+        all_predictions.append(predictions)
+
+    return total_rewards, all_actions, all_observations, all_predictions
+
+
+def run_training_episode(environment, agent, observation):
+    actions = []
+    timestep = 0
+    for timestep in range(config['training']['max_steps']):
+        action = agent.choose_action(observation, training=True)
+        actions.append(action)
+
+        next_observation, reward, terminated, truncated, info = environment.step(action)
+
+        agent.remember(observation, action, reward, next_observation, terminated)
+        agent.learn()
+
+        observation = next_observation
+
+        if config['environment']['render']:
             environment.render()
 
-        action, prediction = agent.choose_action(observation, training=False, include_raw=True)
-
-        actions.append(action)
-        observations.append(observation)
-        predictions.append(prediction)
-
-        observation, reward, terminated, truncated, info = environment.step(action)
-        total_reward += reward
         if terminated or truncated:
             break
-    if config['verbose']:
-        print(actions)
-    return total_reward, actions, observations, predictions
+
+    return timestep, actions
 
 
 class TrainingHandler:
@@ -81,9 +117,9 @@ class TrainingHandler:
 
             observation = self.environment.reset()
             observation = observation[0]
-            training_score, training_actions = self.run_training_episode(observation)
+            training_score, training_actions = run_training_episode(self.environment, self.agent, observation)
 
-            evaluation_score, evaluation_actions, evaluation_observations, evaluation_predictions = run_evaluation_episode(
+            evaluation_score, evaluation_actions, evaluation_observations, evaluation_predictions = run_evaluation_episodes(
                 self.environment, self.agent)
 
             if evaluation_score > best_score:
@@ -108,26 +144,3 @@ class TrainingHandler:
                 break
 
         self.environment.close()
-
-    def run_training_episode(self, observation):
-
-        actions = []
-        timestep = 0
-        for timestep in range(config['training']['max_steps']):
-            action = self.agent.choose_action(observation, training=True)
-            actions.append(action)
-
-            next_observation, reward, terminated, truncated, info = self.environment.step(action)
-
-            self.agent.remember(observation, action, reward, next_observation, terminated)
-            self.agent.learn()
-
-            observation = next_observation
-
-            if config['environment']['render']:
-                self.environment.render()
-
-            if terminated or truncated:
-                break
-
-        return timestep, actions

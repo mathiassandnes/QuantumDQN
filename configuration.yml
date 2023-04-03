@@ -34,6 +34,7 @@ training:
   optimizer: adam
   loss: mse
   max_steps: 100
+  max_eval_steps: 1000
   episodes: 1000
   epsilon:
     end: 0.01
