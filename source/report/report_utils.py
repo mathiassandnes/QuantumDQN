@@ -7,15 +7,10 @@ import matplotlib.pyplot as plt
 
 
 def lookup_input_output_size(mode):
-    if 'cartpole' in mode:
-        environment = 'CartPole-v1'
-    elif 'acrobot' in mode:
-        environment = 'Acrobot-v1'
-
-    if environment == 'CartPole-v1':
+    if 'CartPole-v1' in mode:
         input_size = 4
         output_size = 2
-    elif environment == 'Acrobot-v1':
+    elif 'Acrobot-v1' in mode:
         input_size = 6
         output_size = 3
     else:
@@ -38,11 +33,9 @@ def preprocess_results(mode):
     for trial_folder in os.listdir(path):
 
         for run_folder in os.listdir(os.path.join(path, trial_folder)):
-
             if run_folder == 'config.yml':
                 with open(os.path.join(path, trial_folder, run_folder)) as stream:
                     config[trial_folder] = yaml.safe_load(stream)
-
                 continue
 
             if run_folder == 'hyperparameters.yml':
@@ -52,17 +45,16 @@ def preprocess_results(mode):
                         hparams['entanglements'] = hparams['entanglements'][0]
                         hparams['rotations'] = '[x, y]'
                     hyperparameters[trial_folder] = hparams
-
                 continue
 
             csv_path = os.path.join(path, trial_folder, run_folder, 'results.csv')
             df = pd.read_csv(csv_path, sep=';')
 
-            missing_episodes = 100 - df.shape[0]
-            if missing_episodes > 0:
-                last_n_rows = df.tail(n_padding)
-                pad_rows = last_n_rows.sample(missing_episodes, replace=True)
-                df = pd.concat([df, pad_rows], ignore_index=True)
+            # missing_episodes = 1000 - df.shape[0]
+            # if missing_episodes > 0:
+            #     last_n_rows = df.tail(n_padding)
+            #     pad_rows = last_n_rows.sample(missing_episodes, replace=True)
+            #     df = pd.concat([df, pad_rows], ignore_index=True)
 
             df['trial_id'] = trial_folder
             df['run_id'] = run_folder
@@ -71,24 +63,25 @@ def preprocess_results(mode):
             for hyperparameter, value in hyperparameter_values.items():
                 df[hyperparameter] = value
 
+            df = df.dropna(subset=['evaluation_score'])
+            df['evaluation_score'] = df['evaluation_score'].apply(ast.literal_eval)
+            df = df.explode('evaluation_score')
+            df['evaluation_score_index'] = df.groupby(['trial_id', 'episode']).cumcount()
+
             episodes.append(df)
 
     episodes = pd.concat(episodes, ignore_index=True)
-    episodes = episodes.sort_values(by=['trial_id', 'run_id', 'episode'])
-    episodes = episodes[[
-                            'trial_id',
-                            'run_id',
-                            'episode',
-                            'training_score',
-                            'evaluation_score',
-                            'epsilon',
-                            'training_actions',
-                            'evaluation_actions',
-                            'evaluation_observations',
-                            'evaluation_predictions',
-                            'environment'] + list(hyperparameters[next(iter(hyperparameters))].keys())]
-
-    episodes = episodes.dropna(subset=['evaluation_observations', 'evaluation_predictions'])
+    episodes = episodes[['trial_id',
+                         'run_id',
+                         'episode',
+                         'training_score',
+                         'evaluation_score',
+                         'epsilon',
+                         'training_actions',
+                         'evaluation_actions',
+                         'evaluation_observations',
+                         'evaluation_predictions',
+                         'environment'] + list(hyperparameters[next(iter(hyperparameters))].keys())]
 
     # add column number_of_weights
     if 'classic' in mode:
@@ -172,7 +165,8 @@ def plot_cartpole_episode(episodes, observations, predictions, row):
     observations = pd.DataFrame(observations, columns=['position', 'velocity', 'angle', 'angular_velocity'])
     predictions = pd.DataFrame(predictions, columns=['move_left_expected_reward', 'move_right_expected_reward'])
     agent_data = pd.concat([observations, predictions], axis=1)
-    agent_data['expected_reward'] = agent_data[['move_left_expected_reward', 'move_right_expected_reward']].max(axis=1)
+    agent_data['expected_reward'] = agent_data[['move_left_expected_reward', 'move_right_expected_reward']].max(
+        axis=1)
     fig, axs = plt.subplots(2, 2, figsize=(10, 5))
     ax000 = axs[0, 0]
     ax001 = ax000.twinx()
@@ -248,7 +242,8 @@ def plot_acrobot_episode(episodes, observations, predictions, row):
                                                      'positive_torque_expected_reward'])
     agent_data = pd.concat([observations, predictions], axis=1)
     agent_data['expected_reward'] = agent_data[
-        ['negative_torque_expected_reward', 'no_torque_expected_reward', 'positive_torque_expected_reward']].max(axis=1)
+        ['negative_torque_expected_reward', 'no_torque_expected_reward', 'positive_torque_expected_reward']].max(
+        axis=1)
     fig, axs = plt.subplots(3, 2, figsize=(10, 5))
 
     ax000 = axs[0, 0]
@@ -306,7 +301,8 @@ def plot_acrobot_episode(episodes, observations, predictions, row):
     ax120 = axs[2, 0]
     ax121 = ax120.twinx()
     ax120.set_title('angular_velocity_theta1')
-    ax120.plot(agent_data.index, agent_data['angular_velocity_theta1'], color='blue', label='angular_velocity_theta1')
+    ax120.plot(agent_data.index, agent_data['angular_velocity_theta1'], color='blue',
+               label='angular_velocity_theta1')
     ax120.set_ylim(-2, 2)
     ax120.tick_params(axis='y', labelcolor='blue')
     ax120.set_ylabel('angular_velocity_theta1', color='blue')
@@ -319,7 +315,8 @@ def plot_acrobot_episode(episodes, observations, predictions, row):
     ax200 = axs[2, 1]
     ax201 = ax200.twinx()
     ax200.set_title('angular_velocity_theta_2')
-    ax200.plot(agent_data.index, agent_data['angular_velocity_theta_2'], color='blue', label='angular_velocity_theta_2')
+    ax200.plot(agent_data.index, agent_data['angular_velocity_theta_2'], color='blue',
+               label='angular_velocity_theta_2')
     ax200.set_ylim(-2, 2)
     ax200.tick_params(axis='y', labelcolor='blue')
     ax200.set_ylabel('angular_velocity_theta_2', color='blue')
@@ -338,11 +335,8 @@ def plot_acrobot_episode(episodes, observations, predictions, row):
 
 
 if __name__ == '__main__':
-    episodes, description = preprocess_results('quantum_cartpole')
-    print(episodes.head())
+    episodes, description = preprocess_results('classical_CartPole-v1')
+    print(episodes[['evaluation_score',
+                    'evaluation_score_index']].head())
 
-    # plot_score(episodes, description, 'training', 'CartPole-v1', include_epsilon=True)
-    # plot_score(episodes, description, 'evaluation', 'CartPole-v1')
-    # plot_score(episodes, description, 'evaluation', 'CartPole-v1', show_min_and_max=True)
-    # plot_episode(episodes, 'Acrobot-v1')
-    # plot_episode(episodes, 'CartPole-v1')
+    print(episodes[episodes['trial_id'] == '2023-04-03_12-53-04_thread_3_trial_1']['evaluation_score'].max())

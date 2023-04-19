@@ -11,13 +11,13 @@ config = load_yml(f'../configuration.yml')
 path = '' if config['cluster'] else '../'
 
 
-def run_evaluation_episodes(environment, agent, n=5, render=False):
+def run_evaluation_episodes(environment, agent, render=False):
     total_rewards = []
     all_actions = []
     all_observations = []
     all_predictions = []
 
-    for episode in range(n):
+    for episode in range(config['training']['eval_episodes']):
         observation = environment.reset()
         observation = observation[0]
         total_reward = 0
@@ -47,6 +47,8 @@ def run_evaluation_episodes(environment, agent, n=5, render=False):
         all_actions.append(actions)
         all_observations.append(observations)
         all_predictions.append(predictions)
+
+    print(f'eval: {total_rewards}')
 
     return total_rewards, all_actions, all_observations, all_predictions
 
@@ -122,12 +124,12 @@ class TrainingHandler:
             evaluation_score, evaluation_actions, evaluation_observations, evaluation_predictions = run_evaluation_episodes(
                 self.environment, self.agent)
 
-            if evaluation_score > best_score:
+            if np.average(evaluation_score) > best_score:
                 if config['verbose']:
                     print(f'New best, saving model..')
-                best_score = evaluation_score
+                best_score = np.average(evaluation_score)
                 self.agent.save_model(
-                    f'{path}results/{self.created_at}/run_{self.run_num}/models/{evaluation_score}.h5')
+                    f'{path}results/{self.created_at}/run_{self.run_num}/models/{best_score}.h5')
                 early_stop_counter = 0
             else:
                 early_stop_counter += 1

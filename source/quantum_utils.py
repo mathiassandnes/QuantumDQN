@@ -27,8 +27,10 @@ def get_circuit(n_layers, n_qubits, n_inputs, hyperparameters):
             # Rotations
             weight_index = rotate(layer_index, weights, weight_index)
 
-            # Entanglement
-            entangle(layer_index)
+            if hyperparameters['entanglements'][layer_index] == 'trainable':
+                weight_index = trainable_entangle(layer_index, weights, weight_index)
+            else:
+                entangle(layer_index)
 
         return [qml.expval(qml.PauliZ(i)) for i in range(n_qubits)]
 
@@ -77,6 +79,39 @@ def get_circuit(n_layers, n_qubits, n_inputs, hyperparameters):
                             qml.CNOT(wires=[i, i + 1])
                     brick_layer_type = 1 - brick_layer_type
 
+    def trainable_entangle(layer_index, weights, weight_index):
+        entanglement_strengths = []
+        match hyperparameters['entanglements'][layer_index]:
+            case 'ladder':
+                for i in range(n_qubits - 1):
+                    qml.CRY(weights[weight_index], wires=[i, i + 1])
+                    entanglement_strengths.append(weights[weight_index])
+                    weight_index += 1
+            case 'full':
+                k = 0
+                for i in range(n_qubits - 1):
+                    for j in range(i + 1, n_qubits):
+                        qml.CRY(weights[weight_index], wires=[i, j])
+                        entanglement_strengths.append(weights[weight_index])
+                        weight_index += 1
+                        k += 1
+            case 'brick':
+                brick_layer_type = 0
+                k = 0
+                for _ in range(hyperparameters['brick_size']):
+                    if brick_layer_type == 0:
+                        for i in range(0, n_qubits - 1, 2):
+                            qml.CRY(weights[weight_index], wires=[i, i + 1])
+                            entanglement_strengths.append(weights[weight_index])
+                            weight_index += 1
+                    if brick_layer_type == 1:
+                        for i in range(1, n_qubits - 1, 2):
+                            qml.CRY(weights[weight_index], wires=[i, i + 1])
+                            entanglement_strengths.append(weights[weight_index])
+                            weight_index += 1
+                    brick_layer_type = 1 - brick_layer_type
+        return weight_index
+
     return circuit
 
 
@@ -116,7 +151,8 @@ def preprocess_acrobot(observation):
     angular_velocity_theta1 = round(angular_velocity_theta1, 2)
     angular_velocity_theta2 = round(angular_velocity_theta2, 2)
 
-    observation = np.array([costheta1, sintheta1, costheta2, sintheta2, angular_velocity_theta1, angular_velocity_theta2])
+    observation = np.array(
+        [costheta1, sintheta1, costheta2, sintheta2, angular_velocity_theta1, angular_velocity_theta2])
     return observation
 
 
