@@ -60,7 +60,7 @@ def run_training_episode(environment, agent, observation):
         action = agent.choose_action(observation, training=True)
         actions.append(action)
 
-        next_observation, reward, terminated, truncated, info = environment.step(action)
+        next_observation, reward, terminated, truncated = environment.step(action)
 
         agent.remember(observation, action, reward, next_observation, terminated)
         agent.learn()

@@ -24,8 +24,8 @@ def run_thread(thread, trials, hparams):
 
 
 if __name__ == '__main__':
-    n_procs = 2
-    n_trials = 2
+    n_procs = 1
+    n_trials = 1
     processes = []
 
     hparams = Hyperparameters()

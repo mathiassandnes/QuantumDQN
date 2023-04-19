@@ -27,7 +27,7 @@ def get_circuit(n_layers, n_qubits, n_inputs, hyperparameters):
             # Rotations
             weight_index = rotate(layer_index, weights, weight_index)
 
-            if hyperparameters['entanglements'][layer_index] == 'trainable':
+            if config['quantum']['trainable_entanglements']:
                 weight_index = trainable_entangle(layer_index, weights, weight_index)
             else:
                 entangle(layer_index)
@@ -95,21 +95,6 @@ def get_circuit(n_layers, n_qubits, n_inputs, hyperparameters):
                         entanglement_strengths.append(weights[weight_index])
                         weight_index += 1
                         k += 1
-            case 'brick':
-                brick_layer_type = 0
-                k = 0
-                for _ in range(hyperparameters['brick_size']):
-                    if brick_layer_type == 0:
-                        for i in range(0, n_qubits - 1, 2):
-                            qml.CRY(weights[weight_index], wires=[i, i + 1])
-                            entanglement_strengths.append(weights[weight_index])
-                            weight_index += 1
-                    if brick_layer_type == 1:
-                        for i in range(1, n_qubits - 1, 2):
-                            qml.CRY(weights[weight_index], wires=[i, i + 1])
-                            entanglement_strengths.append(weights[weight_index])
-                            weight_index += 1
-                    brick_layer_type = 1 - brick_layer_type
         return weight_index
 
     return circuit
@@ -207,6 +192,24 @@ def preprocess_lunar_lander(observation):
     observation = np.array(
         [position_x, position_y, velocity_x, velocity_y, angle, angular_velocity, leg1_contact, leg2_contact])
     return observation
+
+
+def count_entanglement_gates(qubits, scheme):
+    print(scheme)
+    count = 0
+    for s in scheme:
+        match s:
+            case 'ladder':
+                count += (qubits - 1)
+            case 'double ladder':
+                count += 2 * (qubits - 1)
+            case 'full':
+                count += (qubits * (qubits - 1)) // 2
+            case 'none':
+                pass
+
+    print(count)
+    return count
 
 
 def preprocess_observation(observation):
