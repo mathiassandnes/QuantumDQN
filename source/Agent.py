@@ -2,7 +2,7 @@ import pennylane as qml
 import numpy as np
 import tensorflow as tf
 
-from source.quantum_utils import get_circuit, preprocess_observation, count_entanglement_gates
+from source.quantum_utils import get_circuit, preprocess_observation, count_entanglement_gates, get_n_weights
 from source.utils import load_yml
 from source.ReplayBuffer import ReplayBuffer
 
@@ -89,11 +89,7 @@ class Agent:
         rotations = self.hyperparameters['rotations']
         entanglements = self.hyperparameters['entanglements']
 
-        rotations_per_qubit = len([item for sublist in rotations for item in sublist])
-        n_weights = rotations_per_qubit * n_qubits
-        if config['quantum']['trainable_entanglements']:
-
-            n_weights += count_entanglement_gates(n_qubits, entanglements)
+        n_weights = get_n_weights(entanglements, n_qubits, rotations, config)
 
         if n_qubits < self.n_inputs:
             print(f'Inputs: {self.n_inputs}, Qubits: {n_qubits}')

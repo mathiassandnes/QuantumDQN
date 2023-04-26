@@ -84,14 +84,14 @@ def get_circuit(n_layers, n_qubits, n_inputs, hyperparameters):
         match hyperparameters['entanglements'][layer_index]:
             case 'ladder':
                 for i in range(n_qubits - 1):
-                    qml.CRY(weights[weight_index], wires=[i, i + 1])
+                    qml.CRX(weights[weight_index], wires=[i, i + 1])
                     entanglement_strengths.append(weights[weight_index])
                     weight_index += 1
             case 'full':
                 k = 0
                 for i in range(n_qubits - 1):
                     for j in range(i + 1, n_qubits):
-                        qml.CRY(weights[weight_index], wires=[i, j])
+                        qml.CRX(weights[weight_index], wires=[i, j])
                         entanglement_strengths.append(weights[weight_index])
                         weight_index += 1
                         k += 1
@@ -195,7 +195,6 @@ def preprocess_lunar_lander(observation):
 
 
 def count_entanglement_gates(qubits, scheme):
-    print(scheme)
     count = 0
     for s in scheme:
         match s:
@@ -208,7 +207,6 @@ def count_entanglement_gates(qubits, scheme):
             case 'none':
                 pass
 
-    print(count)
     return count
 
 
@@ -222,3 +220,11 @@ def preprocess_observation(observation):
             return preprocess_acrobot(observation)
         case 'LunarLander-v2':
             return preprocess_lunar_lander(observation)
+
+
+def get_n_weights(entanglements, n_qubits, rotations, trainable_entanglements):
+    rotations_per_qubit = len([item for sublist in rotations for item in sublist])
+    n_weights = rotations_per_qubit * n_qubits
+    if trainable_entanglements:
+        n_weights += count_entanglement_gates(n_qubits, entanglements)
+    return n_weights

@@ -7,11 +7,8 @@ import matplotlib.pyplot as plt
 
 from source.report.report_utils import preprocess_results
 
-
-
-
 # Preprocessing
-episodes, config, hyperparameters = preprocess_results('classic_cartpole')
+episodes, config = preprocess_results('classicalCartPole-v1')
 hyperparameters_df = pd.DataFrame(hyperparameters).T.reset_index()
 hyperparameters_df.columns = ["trial_id", "layers", "learning_rate", "neurons"]
 data = episodes.merge(hyperparameters_df, on="trial_id")
@@ -69,7 +66,8 @@ input_output_df = pd.concat([observations_df, predictions_df], axis=1)
 
 correlation_matrix = input_output_df.corr()
 
-feature_output_correlations = correlation_matrix.loc[[f'Feature {i + 1}' for i in range(4)], [f'Output {i + 1}' for i in range(2)]]
+feature_output_correlations = correlation_matrix.loc[
+    [f'Feature {i + 1}' for i in range(4)], [f'Output {i + 1}' for i in range(2)]]
 
 plt.figure(figsize=(8, 6))
 sns.heatmap(feature_output_correlations, annot=True, cmap='coolwarm', vmin=-1, vmax=1)
@@ -78,7 +76,6 @@ plt.xlabel('Outputs')
 plt.ylabel('Input Features')
 plt.savefig(os.path.join(output_folder, "correlation_coefficients_between_input_features_and_outputs.png"))
 plt.show()
-
 
 # Create scatter plots for each input feature and output combination
 fig, axes = plt.subplots(4, 2, figsize=(15, 20))

@@ -6,6 +6,30 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 
+def count_entanglement_gates(qubits, scheme):
+    count = 0
+    for s in scheme:
+        match s:
+            case 'ladder':
+                count += (qubits - 1)
+            case 'double ladder':
+                count += 2 * (qubits - 1)
+            case 'full':
+                count += (qubits * (qubits - 1)) // 2
+            case 'none':
+                pass
+
+    return count
+
+
+def get_n_weights(entanglements, n_qubits, rotations, trainable_entanglements):
+    rotations_per_qubit = len([item for sublist in rotations for item in sublist])
+    n_weights = rotations_per_qubit * n_qubits
+    if trainable_entanglements:
+        n_weights += count_entanglement_gates(n_qubits, entanglements)
+    return n_weights
+
+
 def lookup_input_output_size(mode):
     if 'CartPole-v1' in mode:
         input_size = 4
@@ -28,8 +52,6 @@ def preprocess_results(mode):
     config = {}
     hyperparameters = {}
 
-    n_padding = 20
-
     for trial_folder in os.listdir(path):
 
         for run_folder in os.listdir(os.path.join(path, trial_folder)):
@@ -50,12 +72,6 @@ def preprocess_results(mode):
             csv_path = os.path.join(path, trial_folder, run_folder, 'results.csv')
             df = pd.read_csv(csv_path, sep=';')
 
-            # missing_episodes = 1000 - df.shape[0]
-            # if missing_episodes > 0:
-            #     last_n_rows = df.tail(n_padding)
-            #     pad_rows = last_n_rows.sample(missing_episodes, replace=True)
-            #     df = pd.concat([df, pad_rows], ignore_index=True)
-
             df['trial_id'] = trial_folder
             df['run_id'] = run_folder
             df['environment'] = config[trial_folder]['environment']['name']
@@ -64,10 +80,21 @@ def preprocess_results(mode):
                 df[hyperparameter] = value
 
             df = df.dropna(subset=['evaluation_score'])
-            df['evaluation_score'] = df['evaluation_score'].apply(ast.literal_eval)
-            df = df.explode('evaluation_score')
+            try:
+                df['evaluation_score'] = df['evaluation_score'].apply(ast.literal_eval)
+                df = df.explode('evaluation_score')
+            except ValueError:
+                pass
             df['evaluation_score_index'] = df.groupby(['trial_id', 'episode']).cumcount()
 
+            try:
+                df['training_actions'] = df['training_actions'].apply(
+                    lambda x: [int(i) for i in x[1:-1].split(',')])
+                df['training_steps'] = df['training_actions'].apply(lambda x: len(x))
+                # add cumulative sum of training steps
+                df['training_steps_cumsum'] = df.groupby(['trial_id', 'run_id'])['training_steps'].cumsum()
+            except TypeError:
+                print(trial_folder, run_folder)
             episodes.append(df)
 
     episodes = pd.concat(episodes, ignore_index=True)
@@ -78,6 +105,8 @@ def preprocess_results(mode):
                          'evaluation_score',
                          'epsilon',
                          'training_actions',
+                         'training_steps',
+                         'training_steps_cumsum',
                          'evaluation_actions',
                          'evaluation_observations',
                          'evaluation_predictions',
@@ -90,6 +119,14 @@ def preprocess_results(mode):
         episodes['number_of_weights'] = (input_size * episodes['neurons']) + \
                                         ((episodes['layers']) * episodes['neurons'] ** 2) + \
                                         (episodes['neurons'] * 1)
+
+    elif 'quantum' in mode:
+
+        episodes['number_of_weights'] = episodes.apply(
+            lambda row: get_n_weights(row['entanglements'],
+                                      4,
+                                      row['rotations'],
+                                      False), axis=1)
 
     return episodes, config
 
@@ -335,8 +372,7 @@ def plot_acrobot_episode(episodes, observations, predictions, row):
 
 
 if __name__ == '__main__':
-    episodes, description = preprocess_results('classical_CartPole-v1')
-    print(episodes[['evaluation_score',
-                    'evaluation_score_index']].head())
+    episodes, description = preprocess_results('quantumCartPole-v1')
+    print(episodes.head())
 
     print(episodes[episodes['trial_id'] == '2023-04-03_12-53-04_thread_3_trial_1']['evaluation_score'].max())
