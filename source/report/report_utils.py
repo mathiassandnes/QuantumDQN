@@ -22,11 +22,11 @@ def count_entanglement_gates(qubits, scheme):
     return count
 
 
-def get_n_weights(entanglements, n_qubits, rotations, trainable_entanglements):
+def get_n_weights(entanglements, n_qubits, rotations, layers, trainable_entanglements):
     rotations_per_qubit = len([item for sublist in rotations for item in sublist])
-    n_weights = rotations_per_qubit * n_qubits
+    n_weights = rotations_per_qubit * n_qubits * layers
     if trainable_entanglements:
-        n_weights += count_entanglement_gates(n_qubits, entanglements)
+        n_weights += count_entanglement_gates(n_qubits, entanglements) * layers
     return n_weights
 
 
@@ -126,6 +126,7 @@ def preprocess_results(mode):
             lambda row: get_n_weights(row['entanglements'],
                                       4,
                                       row['rotations'],
+                                      row['layers'],
                                       False), axis=1)
 
     return episodes, config

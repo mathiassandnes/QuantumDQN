@@ -89,7 +89,7 @@ class Agent:
         rotations = self.hyperparameters['rotations']
         entanglements = self.hyperparameters['entanglements']
 
-        n_weights = get_n_weights(entanglements, n_qubits, rotations, config)
+        n_weights = get_n_weights(entanglements, n_qubits, rotations, n_layers, config)
 
         if n_qubits < self.n_inputs:
             print(f'Inputs: {self.n_inputs}, Qubits: {n_qubits}')
