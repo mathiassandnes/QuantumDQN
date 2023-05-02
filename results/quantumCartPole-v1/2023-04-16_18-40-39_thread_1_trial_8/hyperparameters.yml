@@ -1,0 +1,8 @@
+entanglements:
+- none
+layers: 1
+learning_rate: 0.003
+qubits: 4
+rotations:
+- - x
+  - y

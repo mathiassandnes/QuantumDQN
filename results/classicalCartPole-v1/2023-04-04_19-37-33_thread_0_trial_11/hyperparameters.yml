@@ -1,0 +1,3 @@
+layers: 3
+learning_rate: 0.01
+neurons: 32

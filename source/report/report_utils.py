@@ -37,6 +37,9 @@ def lookup_input_output_size(mode):
     elif 'Acrobot-v1' in mode:
         input_size = 6
         output_size = 3
+    elif 'LunarLander-v2' in mode:
+        input_size = 8
+        output_size = 4
     else:
         raise ValueError('Unknown environment')
 
@@ -82,9 +85,10 @@ def preprocess_results(mode):
             df = df.dropna(subset=['evaluation_score'])
             try:
                 df['evaluation_score'] = df['evaluation_score'].apply(ast.literal_eval)
-                df = df.explode('evaluation_score')
+                df['evaluation_score'] = df['evaluation_score'].apply(lambda x: sum(x) / len(x))
             except ValueError:
                 pass
+
             df['evaluation_score_index'] = df.groupby(['trial_id', 'episode']).cumcount()
 
             try:
@@ -374,6 +378,3 @@ def plot_acrobot_episode(episodes, observations, predictions, row):
 
 if __name__ == '__main__':
     episodes, description = preprocess_results('quantumCartPole-v1')
-    print(episodes.head())
-
-    print(episodes[episodes['trial_id'] == '2023-04-03_12-53-04_thread_3_trial_1']['evaluation_score'].max())

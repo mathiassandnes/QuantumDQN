@@ -1,0 +1,13 @@
+entanglements:
+- full
+- full
+- full
+layers: 3
+learning_rate: 0.3
+qubits: 4
+rotations:
+- &id001
+  - x
+  - y
+- *id001
+- *id001
