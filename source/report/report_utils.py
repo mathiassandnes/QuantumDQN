@@ -46,7 +46,7 @@ def lookup_input_output_size(mode):
     return input_size, output_size
 
 
-def preprocess_results(mode):
+def preprocess_results(mode) -> (pd.DataFrame, dict):
     path = '../../results'
 
     path = os.path.join(path, mode)
@@ -260,7 +260,7 @@ def plot_cartpole_episode(episodes, observations, predictions, row):
     ax111.set_ylabel('expected_reward', color='orange')
 
     fig.suptitle(f'Trial:  {episodes.loc[row, "trial_id"]} \n '
-                 f'Episde: {episodes.loc[row, "episode"]} \n'
+                 f'Episode: {episodes.loc[row, "episode"]} \n'
                  f'Score: {episodes.loc[row, "evaluation_score"]} \n'
                  f'Environment: {episodes.loc[row, "environment"]}')
 
@@ -377,4 +377,14 @@ def plot_acrobot_episode(episodes, observations, predictions, row):
 
 
 if __name__ == '__main__':
-    episodes, description = preprocess_results('quantumCartPole-v1')
+    episodes, description = preprocess_results('classicalCartPole-v1')
+    print(episodes[['evaluation_predictions']].describe())
+    # find best episode based on evaluation score
+    print(episodes.columns)
+    best_episode = episodes.loc[episodes['evaluation_score'].idxmax()]
+    observations = best_episode['evaluation_observations']
+    predictions = best_episode['evaluation_actions']
+    print(observations)
+    print(predictions)
+    print(best_episode)
+    plot_cartpole_episode(observations, predictions, best_episode, description)

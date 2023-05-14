@@ -17,10 +17,10 @@ def find_best_model():
 
 
 if __name__ == '__main__':
-    directory = '../results/2023-03-13_11-56-31_thread_1_trial_0/run_0'
-    config = load_yml(f'{directory}/../config.yml')
+    directory = '../results/classicalLunarLander-v2/2023-04-22_19-58-25_thread_1_trial_3/run_3'
+    config = load_yml(f'../results/classicalLunarLander-v2/2023-04-22_19-58-25_thread_1_trial_3/config.yml')
 
-    environment = gym.make(config['environment']['name'], render_mode='human')
+    environment = gym.make(config['environment']['name'])
 
     model_path = find_best_model()
     model_path = f'{directory}/models/{model_path}.h5'
